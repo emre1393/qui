@@ -40,6 +40,16 @@ jobs:
           version: 11.1.2
           run_install: false
 
+      - name: Adapt rls imports
+        working-directory: rls
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path . -Recurse -Filter *.go | ForEach-Object {
+            $content = Get-Content $_.FullName -Raw
+            $content = $content -replace 'github\.com/autobrr/rls', 'github.com/moistari/rls'
+            Set-Content -Path $_.FullName -Value $content -NoNewline
+          }
+
       - name: Configure local rls
         working-directory: qui
         run: go mod edit -replace github.com/moistari/rls=../rls
