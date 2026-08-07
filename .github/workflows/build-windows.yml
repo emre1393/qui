@@ -99,14 +99,20 @@ jobs:
             ./cmd/qui
 
       - name: Package Windows
+        shell: bash
         run: |
+          TIMESTAMP=$(date -u +"%Y%m%d-%H%M%S")
+
           mkdir qui-windows
           cp qui.exe qui-windows/
+
           cd qui-windows
-          zip ../qui-windows-x86_64.zip qui.exe
+          zip "../qui-windows-${TIMESTAMP}.zip" qui.exe
+
+          echo "ZIP_NAME=qui-windows-${TIMESTAMP}.zip" >> "$GITHUB_ENV"
 
       - name: Upload Windows build
         uses: actions/upload-artifact@v4
         with:
-          name: qui-windows-x86_64
-          path: qui-windows-x86_64.zip
+          name: ${{ env.ZIP_NAME }}
+          path: ${{ env.ZIP_NAME }}
