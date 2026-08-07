@@ -13,12 +13,21 @@ jobs:
     steps:
       - name: Checkout qui
         uses: actions/checkout@v4
+        with:
+          path: qui
+
+      - name: Checkout modified rls
+        uses: actions/checkout@v4
+        with:
+          repository: emre1393/rls
+          ref: master
+          path: rls
 
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
           go-version: '1.26.x'
-          cache: true
+          cache: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -31,16 +40,22 @@ jobs:
           version: 11.1.2
           run_install: false
 
-      - name: Prepare Go dependencies
-        run: go mod tidy
+      - name: Configure local rls
+        working-directory: qui
+        run: go mod edit -replace github.com/moistari/rls=../rls
+
+      - name: Download Go dependencies
+        working-directory: qui
+        run: go mod download
 
       - name: Build frontend
-        working-directory: web
+        working-directory: qui/web
         run: |
           pnpm install --frozen-lockfile
           pnpm build
 
       - name: Copy frontend
+        working-directory: qui
         shell: pwsh
         run: |
           if (Test-Path "internal/web/dist") {
@@ -49,10 +64,11 @@ jobs:
           Copy-Item -Recurse "web/dist" "internal/web/dist"
 
       - name: Build Windows executable
+        working-directory: qui
         run: go build -o qui.exe ./cmd/qui
 
       - name: Upload qui.exe
         uses: actions/upload-artifact@v4
         with:
           name: qui-windows
-          path: qui.exe
+          path: qui/qui.exe
