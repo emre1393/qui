@@ -75,7 +75,6 @@ jobs:
           echo "$RLS_CACHE"
 
           cp -a "$RLS_CACHE" ./rls-build
-
           chmod -R u+w ./rls-build
 
           curl -fsSL \
@@ -86,11 +85,19 @@ jobs:
             https://raw.githubusercontent.com/emre1393/rls/master/lex.go \
             -o ./rls-build/lex.go
 
+          # The local rls module declares itself as github.com/moistari/rls.
+          # Make the copied source use that module path too.
+          grep -RIl 'github.com/autobrr/rls' ./rls-build \
+            --include='*.go' \
+            --include='go.mod' \
+            | xargs -r sed -i 's#github\.com/autobrr/rls#github.com/moistari/rls#g'
+
           echo "Modified rls files:"
-          echo "taginfo.csv:"
-          wc -l ./rls-build/taginfo/taginfo.csv
-          echo "lex.go:"
           sha256sum ./rls-build/lex.go
+          wc -l ./rls-build/taginfo/taginfo.csv
+
+          echo "Checking rls imports:"
+          grep -R 'github.com/autobrr/rls' ./rls-build --include='*.go' || true
 
       - name: Configure local rls
         run: |
