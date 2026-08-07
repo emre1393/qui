@@ -82,8 +82,15 @@ jobs:
             https://raw.githubusercontent.com/emre1393/rls/master/taginfo/taginfo.csv \
             -o ./rls-build/taginfo/taginfo.csv
 
-          echo "Modified CSV:"
+          curl -fsSL \
+            https://raw.githubusercontent.com/emre1393/rls/master/lex.go \
+            -o ./rls-build/lex.go
+
+          echo "Modified rls files:"
+          echo "taginfo.csv:"
           wc -l ./rls-build/taginfo/taginfo.csv
+          echo "lex.go:"
+          sha256sum ./rls-build/lex.go
 
       - name: Configure local rls
         run: |
