@@ -1,70 +1,60 @@
-name: Build Windows
-
-on:
-  workflow_dispatch:
-
-permissions:
-  contents: read
-
-jobs:
-  build-windows:
-    runs-on: windows-latest
+  windows:
+    name: Build Windows
+    runs-on: ubuntu-latest
+    needs: web
 
     steps:
       - name: Checkout qui
         uses: actions/checkout@v4
         with:
-          path: qui
+          fetch-depth: 0
 
-      - name: Checkout modified rls
-        uses: actions/checkout@v4
+      - name: Download web build
+        uses: actions/download-artifact@v4
         with:
-          repository: emre1393/rls
-          ref: master
-          path: rls
+          name: web-dist
+          path: web/dist
 
-      - name: Setup Go
-        uses: actions/setup-go@v6
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.26.x'
-          cache: false
+          go-version-file: go.mod
+          cache: true
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
+      - name: Download upstream rls
+        run: go mod download github.com/moistari/rls@v0.8.1
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 11.1.2
-          run_install: false
-
-      - name: Configure local rls
-        working-directory: qui
+      - name: Replace rls CSV
         run: |
-          go mod edit -replace github.com/moistari/rls=../rls
-          go mod edit -replace github.com/autobrr/rls=../rls
+          curl -L \
+            https://raw.githubusercontent.com/emre1393/rls/master/taginfo/taginfo.csv \
+            -o modified-taginfo.csv
 
-      - name: Download Go dependencies
-        working-directory: qui
-        run: go mod download
+          RLS_DIR=$(go env GOPATH)/pkg/mod/github.com/moistari/rls@v0.8.1
 
-      - name: Build frontend
-        working-directory: qui/web
+          echo "Replacing:"
+          echo "$RLS_DIR/taginfo/taginfo.csv"
+
+          cp modified-taginfo.csv "$RLS_DIR/taginfo/taginfo.csv"
+
+      - name: Build Windows
         run: |
-          pnpm install --frozen-lockfile
-          pnpm build
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 \
+            go build \
+            -trimpath \
+            -ldflags="-s -w" \
+            -o qui.exe \
+            ./cmd/qui
 
-      - name: Copy frontend
-        working-directory: qui
-        shell: pwsh
+      - name: Package Windows
         run: |
-          if (Test-Path "internal/web/dist") {
-            Remove-Item -Recurse -Force "internal/web/dist"
-          }
-          Copy-Item -Recurse "web/dist" "internal/web/dist"
+          mkdir qui-windows
+          cp qui.exe qui-windows/
+          cd qui-windows
+          zip ../qui-windows-x86_64.zip qui.exe
 
-      - name: Build Windows executable
-        working-directory: qui
-        run: go build -o qui.exe ./cmd/qui
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: qui-windows
+          path: qui-windows-x86_64.zip
