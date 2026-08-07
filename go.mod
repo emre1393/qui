@@ -57,7 +57,6 @@ require (
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 )
 
-replace github.com/moistari/rls => github.com/emre1393/rls v0.8.1.1
 
 
 require (
