@@ -64,23 +64,30 @@ jobs:
       - name: Download rls dependency
         run: go mod download
 
-      - name: Replace rls CSV
+      - name: Prepare modified rls
         shell: bash
         run: |
+          go mod download github.com/autobrr/rls@v0.8.1
+
+          RLS_CACHE="$(go env GOMODCACHE)/github.com/autobrr/rls@v0.8.1"
+
+          echo "Copying rls from:"
+          echo "$RLS_CACHE"
+
+          cp -a "$RLS_CACHE" ./rls-build
+
+          chmod -R u+w ./rls-build
+
           curl -fsSL \
             https://raw.githubusercontent.com/emre1393/rls/master/taginfo/taginfo.csv \
-            -o modified-taginfo.csv
+            -o ./rls-build/taginfo/taginfo.csv
 
-          RLS_DIR="$(go env GOMODCACHE)/github.com/autobrr/rls@v0.8.1"
+          echo "Modified CSV:"
+          wc -l ./rls-build/taginfo/taginfo.csv
 
-          echo "Using rls from:"
-          echo "$RLS_DIR"
-
-          test -f "$RLS_DIR/taginfo/taginfo.csv"
-
-          cp modified-taginfo.csv "$RLS_DIR/taginfo/taginfo.csv"
-
-          echo "CSV replaced successfully."
+      - name: Configure local rls
+        run: |
+          go mod edit -replace github.com/moistari/rls=./rls-build
 
       - name: Build Windows
         run: |
