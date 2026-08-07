@@ -34,8 +34,8 @@ jobs:
           version: 11.1.2
           run_install: false
 
-      - name: Download Go dependencies
-        run: go mod download
+      - name: Prepare Go dependencies
+        run: go mod tidy
 
       - name: Build frontend
         working-directory: web
